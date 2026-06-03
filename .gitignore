@@ -1,0 +1,26 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# Secrets — never commit the API key
+.env
+
+# Harness / editor artifacts
+.claude/
+
+# Regenerable database (rebuild with `uv run python db.py`)
+data/
+*.sqlite
+*.db
+
+# Verbose run logs (the raw per-trial traces in runs/*.jsonl ARE committed)
+runs/*.log
+
+# results/ and runs/*.jsonl are intentionally tracked for reproducibility
