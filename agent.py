@@ -39,7 +39,7 @@ TOOLS = [
         "parameters": {"type": "object", "properties": {}, "additionalProperties": False}}},
     {"type": "function", "function": {
         "name": "describe_table",
-        "description": "Show the columns (name and type) of one table.",
+        "description": "Show the columns (name, type, and a few sample values) of one table.",
         "parameters": {"type": "object", "properties": {
             "table": {"type": "string", "description": "Table name"}},
             "required": ["table"], "additionalProperties": False}}},
@@ -131,8 +131,19 @@ def _run_tool(name: str, args: dict, con: sqlite3.Connection) -> tuple[str, bool
         info = con.execute(f"PRAGMA table_info({t})").fetchall()
         if not info:
             return json.dumps({"error": f"no such table: {t}"}), True
-        return json.dumps({"table": t,
-                           "columns": [{"name": r[1], "type": r[2]} for r in info]}), False
+        # Include a few distinct sample values per column (as a real data-agent schema
+        # tool would) so the agent can DISCOVER enum casing/domains rather than guess.
+        cols = []
+        for r in info:
+            cname = r[1]
+            try:
+                vals = [row[0] for row in con.execute(
+                    f'SELECT DISTINCT "{cname}" FROM "{t}" '
+                    f'WHERE "{cname}" IS NOT NULL LIMIT 5').fetchall()]
+            except Exception:  # noqa: BLE001
+                vals = []
+            cols.append({"name": cname, "type": r[2], "sample_values": vals})
+        return json.dumps({"table": t, "columns": cols}), False
     if name == "run_sql":
         return _exec_sql(con, args.get("query", ""))
     return json.dumps({"error": f"unknown tool {name}"}), True

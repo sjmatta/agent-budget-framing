@@ -27,6 +27,7 @@ class Condition:
     unit_plur: str = ""
     is_money: bool = False
     is_latinum: bool = False
+    tone: str = "neutral"      # "neutral" | "urgent" | "playful" — balance-message tone
 
     @property
     def max_paid_calls(self) -> int:
@@ -54,19 +55,29 @@ class Condition:
         )
 
     def balance_line(self, remaining: float) -> str:
-        """Message appended after each paid action reporting remaining balance."""
+        """Message appended after each paid action reporting remaining balance.
+
+        `tone` varies ONLY the emotional framing of the running-low message, holding
+        the noun fixed — this isolates stakes/threat framing from the currency itself.
+        """
         if not self.has_budget:
             return ""
+        cost, rem, zero = self.amount(self.cost), self.amount(remaining), self.amount(0)
+        if self.tone == "urgent":
+            if remaining <= 0:
+                return (f"That action cost {cost}. You're now at {zero} — out of budget! "
+                        f"Submit your final answer immediately.")
+            return f"That action cost {cost}. Careful — only {rem} left, don't run out!"
+        if self.tone == "playful":
+            if remaining <= 0:
+                return (f"That was {cost}. The chest is empty now ({zero}) — time to share "
+                        f"your final answer!")
+            return f"Nice — that was {cost}. You've still got {rem} in the chest!"
+        # neutral (default)
         if remaining <= 0:
-            return (
-                f"Budget update: that action cost {self.amount(self.cost)}. You now have "
-                f"{self.amount(0)} left — you cannot take any more paid actions. Submit "
-                f"your final answer now."
-            )
-        return (
-            f"Budget update: that action cost {self.amount(self.cost)}. "
-            f"You have {self.amount(remaining)} remaining."
-        )
+            return (f"Budget update: that action cost {cost}. You now have {zero} left — "
+                    f"you cannot take any more paid actions. Submit your final answer now.")
+        return f"Budget update: that action cost {cost}. You have {rem} remaining."
 
     def exhausted_line(self) -> str:
         """Returned when a paid tool is attempted with no budget left."""
@@ -87,6 +98,24 @@ CONDITIONS: dict[str, Condition] = {
     "dubloons":  Condition("dubloons",  has_budget=True,  total=5, cost=1,
                            unit_sing="doubloon", unit_plur="doubloons"),
     "latinum":   Condition("latinum",   has_budget=True,  total=5, cost=1, is_latinum=True),
+
+    # --- Experiment 2: currency-property panel (mechanism decomposition) ---
+    # concrete + countable, low-whimsy neutral (tests countability without whimsy)
+    "tokens":    Condition("tokens",    has_budget=True,  total=5, cost=1,
+                           unit_sing="token", unit_plur="tokens"),
+    # concrete + countable + whimsical (replications of the doubloons class)
+    "goldcoins": Condition("goldcoins", has_budget=True,  total=5, cost=1,
+                           unit_sing="gold coin", unit_plur="gold coins"),
+    "gems":      Condition("gems",      has_budget=True,  total=5, cost=1,
+                           unit_sing="gem", unit_plur="gems"),
+    # concrete + countable + negative valence / threat (tests stakes)
+    "lives":     Condition("lives",     has_budget=True,  total=5, cost=1,
+                           unit_sing="life", unit_plur="lives"),
+    # --- Experiment 2: tone probe (noun fixed = doubloons, vary running-low framing) ---
+    "dub_urgent":  Condition("dub_urgent",  has_budget=True, total=5, cost=1,
+                             unit_sing="doubloon", unit_plur="doubloons", tone="urgent"),
+    "dub_playful": Condition("dub_playful", has_budget=True, total=5, cost=1,
+                             unit_sing="doubloon", unit_plur="doubloons", tone="playful"),
 }
 
 CONDITION_KEYS = list(CONDITIONS.keys())
