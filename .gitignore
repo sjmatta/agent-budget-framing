@@ -24,3 +24,6 @@ data/
 runs/*.log
 
 # results/ and runs/*.jsonl are intentionally tracked for reproducibility
+
+.deepeval/
+runs/*.console

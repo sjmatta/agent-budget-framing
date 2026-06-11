@@ -21,12 +21,17 @@ JUDGE_MODEL_DEFAULT = "openai/gpt-5-mini"
 
 # --- blinding / sanitization ----------------------------------------------
 
+# Every budget unit across all experiments must be sanitized SYMMETRICALLY, or the
+# judge is differentially blinded (e.g. it sees "5 minutes left" but only "some budget"
+# for seconds) and the panic comparison is confounded. Keep this list exhaustive.
+_UNIT = (r"seconds?|minutes?|hours?|days?|credits?|tokens?|doubloons?|dubloons?|"
+         r"dollars?|gold\s+coins?|coins?|gems?|lives|life|bars?")
 _CURRENCY_PATTERNS = [
     (re.compile(r"\$\s?\d+(?:\.\d+)?"), "some budget"),
     (re.compile(r"\d+(?:\.\d+)?\s*bars? of gold-pressed latinum", re.I), "some budget"),
     (re.compile(r"gold-pressed latinum|latinum", re.I), "budget"),
-    (re.compile(r"\b\d+(?:\.\d+)?\s*(?:seconds?|credits?|doubloons?|dollars?)\b", re.I), "some budget"),
-    (re.compile(r"\b(seconds?|credits?|doubloons?|dollars?)\b", re.I), "units"),
+    (re.compile(rf"\b\d+(?:\.\d+)?\s*(?:{_UNIT})\b", re.I), "some budget"),
+    (re.compile(rf"\b(?:{_UNIT})\b", re.I), "units"),
 ]
 
 

@@ -111,6 +111,18 @@ CONDITIONS: dict[str, Condition] = {
     # concrete + countable + negative valence / threat (tests stakes)
     "lives":     Condition("lives",     has_budget=True,  total=5, cost=1,
                            unit_sing="life", unit_plur="lives"),
+    # --- Experiment 3: time-units AS currency (count-matched to dubloons: 5 @ 1/call).
+    # Mechanics are IDENTICAL across seconds/minutes/hours (5 paid calls). Only the unit's
+    # implied magnitude changes — tests whether "felt duration" (5s = frantic vs 5h = loose)
+    # moves behavior even though the real constraint never changes. NB: distinct from the
+    # original `time` condition, which used a realistic spend-rate (50s @ 10s/call).
+    "seconds":   Condition("seconds",   has_budget=True,  total=5, cost=1,
+                           unit_sing="second", unit_plur="seconds"),
+    "minutes":   Condition("minutes",   has_budget=True,  total=5, cost=1,
+                           unit_sing="minute", unit_plur="minutes"),
+    "hours":     Condition("hours",     has_budget=True,  total=5, cost=1,
+                           unit_sing="hour", unit_plur="hours"),
+
     # --- Experiment 2: tone probe (noun fixed = doubloons, vary running-low framing) ---
     "dub_urgent":  Condition("dub_urgent",  has_budget=True, total=5, cost=1,
                              unit_sing="doubloon", unit_plur="doubloons", tone="urgent"),

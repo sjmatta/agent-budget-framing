@@ -19,9 +19,18 @@ spectacular-but-false headline before we caught it.
 >    real, but mundane, not "intelligence." On a brittle task that's enough to swing outcomes.
 > 3. **Urgent "running-low" framing modestly raises judged panic** (the one affective,
 >    casing-independent signal).
+>
+> **Then we tested *time*-framing (Experiment 3) and caught a SECOND artifact** — this one
+> judge-side. Denominating the budget in time units ("5 seconds / 5 minutes / 5 hours,"
+> each action costs 1) appeared to drive panic (`minutes` 0.67 vs `seconds` 0.30). It was
+> a *blinding* bug: the judge sanitized the word "seconds" but **not "minutes"/"hours,"** so
+> it literally saw time-pressure words in two of three conditions. Fix the blinding and the
+> effect collapses (spread 0.37 → 0.056). At full power on the fixed harness, **time-framing
+> changes nothing** — quality, efficiency, and blinded panic are all flat (omnibus p = 0.16,
+> nothing survives Holm). **Two spectacular framing "effects," two measurement artifacts.**
 
 Agent: **Claude Sonnet 4.6** (+ a **Haiku 4.5** capability panel) via OpenRouter. Judge:
-**GPT-5-mini** (different family, blinded). Eval: **DeepEval** `GEval`. ~2,000 trials, ~$45.
+**GPT-5-mini** (different family, blinded). Eval: **DeepEval** `GEval`. ~2,300 trials, ~$54.
 
 ---
 
@@ -118,6 +127,61 @@ the casing guess.** There is **no real framing → analytical-quality effect** i
 > never verified the `status` value; ~13% answered off a 0-row query. The failure is
 > *silent* — "$0.00 revenue" with full confidence.
 
+## Experiment 3 — time-units *as currency* (and a second artifact)
+
+**Question.** *"LLMs are said to have a bad sense of time. If we denominate the budget in
+time units — even framed as a spendable currency — does that change behavior? And does the
+unit's implied magnitude matter (5 'seconds' feels frantic; 5 'hours' feels relaxed)?"*
+
+**Design.** Three new conditions count-matched to the currency cells (exactly **5 paid
+calls, 1 unit/call** — identical to `dubloons`): `seconds`, `minutes`, `hours`. The *real*
+constraint is identical across all three; only the unit's felt-duration differs. Run on the
+**fixed `describe_table`** (sample values exposed), with the original realistic-rate `time`
+(50s @ 10s/call) and the currency cells as anchors. 8 conditions × 3 tasks × 36 reps = 288
+trials, fresh agents + judge.
+
+**Result 1 — confirmatory.** On the fixed harness the casing artifact is gone: **100%
+lowercase casing, 100% correct in every condition**, and `calls` / `ran_out` /
+`answered_with_budget_left` are **byte-identical across all 8 conditions including the
+no-budget control** (4.67 calls, 0.67 ran-out, 0.33 answered-early). Framing — money, time,
+whimsy, or none — does not move quality *or* how the agent budgets. This empirically
+reproduces the mediation conclusion at n = 288.
+
+**Result 2 — a SECOND artifact.** The pilot showed a beautiful felt-duration panic gradient:
+
+| condition | panic (buggy blinding) | panic (symmetric blinding) |
+|---|---:|---:|
+| `seconds` | 0.30 | 0.20 |
+| `minutes` | **0.67** | 0.22 |
+| `hours`   | 0.50 | 0.26 |
+
+It was a **judge-blinding bug**: `judge.py` sanitized "seconds" but **not "minutes"/"hours,"**
+so the blinded trace still contained explicit time-pressure language ("4 minutes remaining")
+in two of the three conditions. The judge scored what it could see. Making the blinding
+symmetric (`rejudge.py` re-scores the *same* agent traces) collapses the gradient: spread
+0.37 → 0.056, Kruskal p 0.079 → 0.40.
+
+**Result 3 — the clean null (n = 36/cell, symmetric blinding).**
+
+| | result |
+|---|---|
+| **felt-duration** (seconds<minutes<hours) | Kruskal **p = 0.27**; Spearman ρ = +0.14 (p = 0.14, *non*-monotonic, sign opposite the hypothesis); seconds vs hours Δ = −0.10 (p = 0.13) |
+| **time-units vs currency** panic | 0.485 vs 0.516, **p = 0.67** |
+| **omnibus** across all 8 conditions | Kruskal **H = 10.6, p = 0.16** |
+| **vs neutral `credits` baseline** | a few raw contrasts dip < 0.05 (the *neutral* baseline was *highest* panic), but **none survive Holm**; direction is backwards |
+
+**Verdict (H2, time → worse/panicky): ❌ again.** Time-framing — including the implied-
+magnitude manipulation, and even the realistic-rate `time` condition — changes neither task
+quality, nor efficiency, nor blinded panic. *(Caveat: the panic judge's absolute level drifts
+between scoring sessions — pilot re-judge centered ~0.2, the full run ~0.5 on identical
+blinding — so we trust only **within-dataset** relative comparisons, which are flat at every
+look.)*
+
+> **The meta-finding: two attractive framing effects, two measurement artifacts** — first
+> **agent-side** (an unverifiable SQL casing guess), then **judge-side** (asymmetric
+> blinding). Both were caught only by reading traces and re-scoring. Treat any single-number
+> agent metric — *especially a flattering one* — as guilty until audited.
+
 ## Implications for a real (cost-constrained) data agent
 
 The practical lesson is **not** "use whimsical currency." It's:
@@ -150,11 +214,14 @@ The practical lesson is **not** "use whimsical currency." It's:
 - The headline artifact is a reminder that **a gradeable outcome can be driven by a hidden
   brittle factor**; we caught it only by reading traces. Treat single-number agent evals
   with suspicion.
-- "Panic" is a blinded LLM judgment of reasoning text, not affect; effects are modest.
-- The clean *confirmatory* experiment (re-run on the fixed `describe_table` so casing is
-  discoverable) is **pending a working API key**; the mediation analysis above already
-  establishes the conclusion (framing → quality is fully explained by the casing guess),
-  and the fixed harness is committed and ready (`uv run python run_experiment.py ...`).
+- "Panic" is a blinded LLM judgment of reasoning text, not affect; effects are modest, and
+  its **absolute level drifts between scoring sessions** (Exp 3 re-judge ~0.2 vs full ~0.5 on
+  identical blinding) — only **within-dataset** relative comparisons are trustworthy. The
+  Exp 3 blinding bug is a reminder that **the judge must be blinded *symmetrically* across
+  every condition**, or it scores the leak.
+- The confirmatory clean experiment is **done** (Experiment 3, on the fixed `describe_table`):
+  100% correctness and byte-identical efficiency across all framings at n = 288, reproducing
+  the mediation conclusion empirically.
 
 ## Reproduce
 
@@ -167,14 +234,22 @@ uv run python run_experiment.py --tag run --reps 28 \
 uv run python analyze.py        --glob runs/run.jsonl     # primary stats + plots
 uv run python analyze_clean.py  --glob runs/run.jsonl     # confounder-controlled re-analysis
 uv run python analyze_panel.py  --glob runs/run.jsonl     # currency-property + tone decomposition
+
+# Experiment 3 — time-units as currency (on the fixed describe_table)
+uv run python run_experiment.py --tag exp3 --reps 12 \
+    --conditions control,credits,money,time,seconds,minutes,hours,dubloons \
+    --tasks germany,top_customer,top_month
+uv run python analyze_time.py   --glob runs/exp3.jsonl     # time-framing + felt-duration test
+uv run python rejudge.py --in   runs/exp3.jsonl            # re-score panic with current blinding (no agent re-runs)
 ```
 
 Code: `db.py`, `tasks.py`, `conditions.py`, `agent.py`, `judge.py`, `run_experiment.py`,
-`analyze*.py`. Raw per-trial traces: `runs/*.jsonl` (full reasoning + balances + SQL).
-Plots/tables: `results/`.
+`analyze*.py`, `rejudge.py`. Raw per-trial traces: `runs/*.jsonl` (full reasoning + balances
++ SQL). Plots/tables: `results/`.
 
 ## Cost
 
 Exp 1 (budget calibration + 6-condition run) ~$18.8 · Exp 2 (10-condition currency panel +
-tone probe) ~$20.6 · Haiku capability panel ~$5.0 ≈ **~$45 total**. Sonnet ≈ $0.025/trial
-with prompt caching; Haiku ≈ $0.012; GPT-5-mini judge ≈ $0.004.
+tone probe) ~$20.6 · Haiku capability panel ~$5.0 · Exp 3 (time-units, 288 trials + pilot +
+re-judge) ~$9.8 ≈ **~$54 total**. Sonnet ≈ $0.025/trial with prompt caching; Haiku ≈ $0.012;
+GPT-5-mini judge ≈ $0.004.
